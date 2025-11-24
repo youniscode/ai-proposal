@@ -1,16 +1,30 @@
-// server/index.js
+// server/index.cjs
+// Simple Express backend for JonasCode AI Proposal Generator
+
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+// Fallback fetch for environments without global fetch (Node < 18)
+let fetchFn = global.fetch;
+if (typeof fetchFn !== "function") {
+    // Lazy-load node-fetch only if needed
+    fetchFn = (...args) =>
+        import("node-fetch").then(({ default: fetch }) => fetch(...args));
+}
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+// Health check / root route (for Render + manual tests)
+app.get("/", (req, res) => {
+    res.send("ai-proposal backend is running");
+});
+
 app.post("/api/generate-project-folder", async (req, res) => {
-    const { leadText } = req.body || {};
+    const { leadText, model, tone } = req.body || {};
 
     if (!leadText || !leadText.trim()) {
         return res.status(400).json({
@@ -19,6 +33,7 @@ app.post("/api/generate-project-folder", async (req, res) => {
     }
 
     if (!process.env.OPENAI_API_KEY) {
+        console.error("[BACKEND] OPENAI_API_KEY is missing");
         return res.status(500).json({
             error: "OPENAI_API_KEY is not set on the server.",
         });
@@ -38,6 +53,12 @@ Your tone:
 - No AI / system / meta talk
 - No explanation of your process
 - No placeholders like {{client}}
+
+If the caller provides a tone preset or model, adapt accordingly:
+- Tone "premium" → premium agency voice
+- Tone "professional" → neutral, business-focused
+- Tone "friendly" → warm and approachable
+- Tone "concise" → shorter, still structured
 
 Your output MUST follow this exact structure and order:
 
@@ -117,14 +138,14 @@ Important:
 `;
 
     try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        const response = await fetchFn("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-                model: "gpt-4.1-mini",
+                model: model || "gpt-4.1-mini",
                 temperature: 0.4,
                 messages: [
                     { role: "system", content: systemPrompt },
@@ -141,24 +162,22 @@ Important:
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("OpenAI error:", data);
+            console.error("[BACKEND] OpenAI error:", data);
             return res.status(500).json({
                 error: "OpenAI API error while generating project folder.",
             });
         }
 
         const projectFolder =
-            data.choices?.[0]?.message?.content ||
-            "No content returned from OpenAI.";
+            data.choices?.[0]?.message?.content || "No content returned from OpenAI.";
 
         return res.json({ projectFolder });
     } catch (err) {
-        console.error("Server error:", err);
+        console.error("[BACKEND] Server error:", err);
         return res.status(500).json({
             error: "Unexpected server error while generating project folder.",
         });
     }
-
 });
 
 const PORT = process.env.PORT || 5000;
