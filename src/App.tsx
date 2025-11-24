@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import "./index.css";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 type SectionKey = "all" | "overview" | "brief" | "proposal" | "miniSpec";
 
 type HistoryItem = {
@@ -94,7 +96,6 @@ function makeId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-
 function App() {
   const [leadText, setLeadText] = useState("");
   const [outputText, setOutputText] = useState("");
@@ -156,16 +157,13 @@ function App() {
       setOutputText("Generating project folder from backend…");
       setActiveHistoryId(null);
 
-      const res = await fetch(
-        "http://localhost:5000/api/generate-project-folder",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ leadText, model, tone }),
-        }
-      );
+      const res = await fetch(`${API_BASE}/api/generate-project-folder`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ leadText, model, tone }),
+      });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
