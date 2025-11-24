@@ -1,6 +1,7 @@
 // src/App.tsx
 import { useState, useEffect } from "react";
 import "./index.css";
+import ReactMarkdown, { type Components } from "react-markdown";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -97,6 +98,92 @@ function makeId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+const markdownComponents: Components = {
+  h1: (props) => (
+    <h1
+      {...props}
+      className={
+        "text-lg md:text-xl font-semibold text-slate-50 mt-2 mb-2 " +
+        (props.className ?? "")
+      }
+    />
+  ),
+
+  h2: (props) => (
+    <h2
+      {...props}
+      className={
+        "text-base md:text-lg font-semibold text-slate-50 mt-6 mb-2 border-b border-[#1E2639] pb-1 " +
+        (props.className ?? "")
+      }
+    />
+  ),
+
+  h3: (props) => (
+    <h3
+      {...props}
+      className={
+        "text-sm md:text-base font-semibold text-slate-100 mt-4 mb-1 " +
+        (props.className ?? "")
+      }
+    />
+  ),
+
+  p: (props) => (
+    <p
+      {...props}
+      className={
+        "mt-1 mb-1 text-[13px] md:text-[14px] text-slate-100 leading-relaxed " +
+        (props.className ?? "")
+      }
+    />
+  ),
+
+  ul: (props) => (
+    <ul
+      {...props}
+      className={
+        "list-disc list-inside mt-1 mb-2 space-y-0.5 text-[13px] md:text-[14px] text-slate-100 " +
+        (props.className ?? "")
+      }
+    />
+  ),
+
+  ol: (props) => (
+    <ol
+      {...props}
+      className={
+        "list-decimal list-inside mt-1 mb-2 space-y-0.5 text-[13px] md:text-[14px] text-slate-100 " +
+        (props.className ?? "")
+      }
+    />
+  ),
+
+  strong: (props) => (
+    <strong
+      {...props}
+      className={"font-semibold text-slate-50 " + (props.className ?? "")}
+    />
+  ),
+
+  hr: (props) => (
+    <hr
+      {...props}
+      className={
+        "my-4 border-t border-dashed border-[#1E2639] " +
+        (props.className ?? "")
+      }
+    />
+  ),
+};
+
+// Small helper to keep TS happy and keep styling clean
+function StyledMarkdown({ children }: { children: string }) {
+  return (
+    <ReactMarkdown components={markdownComponents}>{children}</ReactMarkdown>
+  );
+}
+
 function App() {
   const [leadText, setLeadText] = useState("");
   const [outputText, setOutputText] = useState("");
@@ -108,6 +195,7 @@ function App() {
   const [tone, setTone] = useState("premium");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -271,132 +359,187 @@ function App() {
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className="hidden md:flex w-72 flex-col border-r border-slate-800 bg-slate-950/90 px-5 py-6 gap-6">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-lg">
-              J
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-tight">
-                JonasCode Studio
-              </p>
-              <p className="text-[11px] text-slate-500">
-                AI Proposal Workspace
-              </p>
-            </div>
-          </div>
-
-          <nav className="flex-1 text-sm">
-            <p className="mb-2 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-              Workspace
-            </p>
-            <ul className="space-y-1 mb-3">
-              <li>
-                <button
-                  className="w-full text-left px-3 py-2 rounded-lg bg-slate-900 text-slate-100 text-sm font-medium"
-                  onClick={handleNewProject}
-                >
-                  New project
-                </button>
-              </li>
-            </ul>
-
-            {/* History list */}
-            <div className="mb-6">
-              <p className="mb-2 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-                Recent runs
-              </p>
-              {history.length === 0 ? (
-                <p className="text-[11px] text-slate-500">
-                  No history yet. Generate a project to see it here.
-                </p>
-              ) : (
-                <ul className="space-y-1 max-h-64 overflow-auto pr-1">
-                  {history.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        onClick={() => handleSelectHistory(item)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-[11px] border ${
-                          activeHistoryId === item.id
-                            ? "bg-slate-900 border-cyan-500 text-slate-100"
-                            : "border-slate-800 text-slate-300 hover:bg-slate-900 hover:text-slate-100"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-medium">
-                            {item.title}
-                          </span>
-                          <span className="text-[9px] text-slate-500">
-                            {new Date(item.createdAt).toLocaleTimeString(
-                              undefined,
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
-                          </span>
-                        </div>
-                        <div className="mt-1 text-[9px] text-slate-500 flex gap-2">
-                          <span>{item.model}</span>
-                          <span>•</span>
-                          <span>{item.tone}</span>
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+        <aside
+          className={`hidden md:flex flex-col border-r border-[#1E2639]/80 bg-[#050713]/95 px-3 py-4 gap-4 transition-all duration-200 ${
+            isSidebarExpanded ? "w-72" : "w-20"
+          }`}
+        >
+          {/* Top brand + collapse button */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-2xl bg-gradient-to-br from-[#3CF2E5] to-[#6C2BF3] flex items-center justify-center shadow-[0_0_18px_rgba(60,242,229,0.6)]">
+                <span className="text-sm font-semibold text-slate-950">J</span>
+              </div>
+              {isSidebarExpanded && (
+                <div>
+                  <p className="text-sm font-semibold tracking-tight text-slate-50">
+                    JonasCode Studio
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Proposal Workspace
+                  </p>
+                </div>
               )}
             </div>
 
-            <p className="mt-2 mb-2 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-              Settings
-            </p>
+            {/* Collapse toggle */}
+            <button
+              type="button"
+              onClick={() => setIsSidebarExpanded((prev) => !prev)}
+              className="hidden md:inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#1E2639] bg-[#0B0F19]/80 text-[11px] text-slate-400 hover:border-[#3CF2E5] hover:text-[#3CF2E5] transition-all"
+            >
+              {isSidebarExpanded ? "‹" : "›"}
+            </button>
+          </div>
 
-            <div className="space-y-3 text-[11px] text-slate-400">
-              <div className="space-y-1">
-                <label
-                  htmlFor="model-select"
-                  className="block text-[10px] uppercase tracking-[0.16em] text-slate-500"
-                >
-                  Model
-                </label>
-                <select
-                  id="model-select"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  className="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-1 text-[11px] text-slate-100 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-500"
-                >
-                  <option value="gpt-4.1-mini">
-                    GPT-4.1 mini (fast, cheap)
-                  </option>
-                  <option value="gpt-4.1">GPT-4.1 (higher quality)</option>
-                </select>
-              </div>
+          <nav className="flex-1 text-sm mt-2">
+            {/* Workspace section */}
+            {isSidebarExpanded ? (
+              <>
+                <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                  Workspace
+                </p>
+                <ul className="space-y-1 mb-4">
+                  <li>
+                    <button
+                      className="w-full flex items-center gap-2 text-left px-3 py-2.5 rounded-xl bg-gradient-to-r from-[#151C2E] to-[#101624] text-slate-100 text-sm font-medium border border-[#232C45] shadow-[0_4px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_0_20px_rgba(60,242,229,0.32)] transition-all"
+                      onClick={handleNewProject}
+                    >
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[#101624] text-[11px] text-[#3CF2E5]">
+                        ⚡
+                      </span>
+                      <span>New project</span>
+                    </button>
+                  </li>
+                </ul>
 
-              <div className="space-y-1">
-                <label
-                  htmlFor="tone-select"
-                  className="block text-[10px] uppercase tracking-[0.16em] text-slate-500"
+                {/* History list */}
+                <div className="mb-6">
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                    Recent runs
+                  </p>
+                  {history.length === 0 ? (
+                    <p className="text-[11px] text-slate-500">
+                      Nothing yet. Generate your first project to see it here.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1 max-h-64 overflow-auto pr-1">
+                      {history.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => handleSelectHistory(item)}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl text-[11px] border transition-all ${
+                              activeHistoryId === item.id
+                                ? "bg-[#12192A] border-[#3CF2E5] text-slate-50 shadow-[0_0_16px_rgba(60,242,229,0.45)]"
+                                : "bg-[#090D18]/80 border-[#1E2639] text-slate-300 hover:bg-[#131A2A] hover:border-[#3CF2E5]/60 hover:shadow-[0_0_14px_rgba(60,242,229,0.3)]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate font-medium">
+                                {item.title}
+                              </span>
+                              <span className="text-[9px] text-slate-500">
+                                {new Date(item.createdAt).toLocaleTimeString(
+                                  undefined,
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-[9px] text-slate-500 flex gap-2">
+                              <span>{item.model}</span>
+                              <span>•</span>
+                              <span>{item.tone}</span>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Settings block */}
+                <p className="mt-2 mb-2 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                  Settings
+                </p>
+
+                <div className="space-y-3 text-[11px] text-slate-400">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="model-select"
+                      className="block text-[10px] uppercase tracking-[0.16em] text-slate-500"
+                    >
+                      Model
+                    </label>
+                    <select
+                      id="model-select"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      className="w-full rounded-lg bg-[#0B0F19]/90 border border-[#1E2639] px-2 py-1.5 text-[11px] text-slate-100 outline-none focus:border-[#3CF2E5] focus:ring-1 focus:ring-[#3CF2E5]/50"
+                    >
+                      <option value="gpt-4.1-mini">
+                        GPT-4.1 mini (fast, cheap)
+                      </option>
+                      <option value="gpt-4.1">GPT-4.1 (higher quality)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="tone-select"
+                      className="block text-[10px] uppercase tracking-[0.16em] text-slate-500"
+                    >
+                      Tone preset
+                    </label>
+                    <select
+                      id="tone-select"
+                      value={tone}
+                      onChange={(e) => setTone(e.target.value)}
+                      className="w-full rounded-lg bg-[#0B0F19]/90 border border-[#1E2639] px-2 py-1.5 text-[11px] text-slate-100 outline-none focus:border-[#3CF2E5] focus:ring-1 focus:ring-[#3CF2E5]/50"
+                    >
+                      <option value="premium">Premium agency (default)</option>
+                      <option value="professional">
+                        Professional & neutral
+                      </option>
+                      <option value="friendly">Friendly & approachable</option>
+                      <option value="concise">Ultra concise</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            ) : (
+              // Collapsed: icon-only rail
+              <div className="flex flex-col items-center gap-4 mt-4 text-[11px] text-slate-400">
+                <button
+                  type="button"
+                  onClick={handleNewProject}
+                  className="h-9 w-9 rounded-2xl bg-gradient-to-br from-[#3CF2E5] to-[#6C2BF3] flex items-center justify-center shadow-[0_0_14px_rgba(60,242,229,0.6)] hover:brightness-110 transition-all"
                 >
-                  Tone preset
-                </label>
-                <select
-                  id="tone-select"
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  className="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-1 text-[11px] text-slate-100 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-500"
-                >
-                  <option value="premium">Premium agency (default)</option>
-                  <option value="professional">Professional & neutral</option>
-                  <option value="friendly">Friendly & approachable</option>
-                  <option value="concise">Ultra concise</option>
-                </select>
+                  ⚡
+                </button>
+
+                <div className="h-px w-8 bg-[#1E2639]/80 my-1" />
+
+                <div className="flex flex-col items-center gap-2">
+                  <span className="h-7 w-7 rounded-xl bg-[#090D18] border border-[#1E2639] flex items-center justify-center text-[11px]">
+                    🕒
+                  </span>
+                  <span className="h-7 w-7 rounded-xl bg-[#090D18] border border-[#1E2639] flex items-center justify-center text-[11px]">
+                    ⚙️
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </nav>
 
-          <div className="mt-auto text-[11px] text-slate-500">
-            <p>Built with ❤️ by JonasCode</p>
+          <div className="mt-auto text-[10px] text-slate-500 border-t border-[#1E2639] pt-3">
+            {isSidebarExpanded ? (
+              <p>Built with ❤️ by JonasCode</p>
+            ) : (
+              <p className="text-center text-[9px]">JC</p>
+            )}
           </div>
         </aside>
 
@@ -420,7 +563,7 @@ function App() {
           </header>
 
           {/* Content */}
-          <main className="flex-1 px-4 py-6 md:px-8 md:py-8 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900">
+          <main className="flex-1 px-4 py-6 md:px-8 md:py-8 bg-[#050713] bg-[radial-gradient(circle_at_top,_rgba(60,242,229,0.12),_transparent_60%),radial-gradient(circle_at_bottom,_rgba(160,123,255,0.14),_transparent_55%)]">
             {/* Page header */}
             <div className="mb-6">
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
@@ -436,7 +579,7 @@ function App() {
             {/* Panels */}
             <div className="grid gap-6 md:grid-cols-2">
               {/* Left: lead input */}
-              <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-5 flex flex-col shadow-[0_0_0_1px_rgba(15,23,42,0.9)]">
+              <section className="rounded-2xl border border-[#1E2639] bg-[#0B0F19]/90 p-4 md:p-5 flex flex-col shadow-[0_18px_45px_rgba(0,0,0,0.75)] hover:shadow-[0_0_38px_rgba(60,242,229,0.22)] transition-shadow">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-100">
@@ -453,7 +596,7 @@ function App() {
                 </div>
 
                 <textarea
-                  className="mt-3 flex-1 w-full rounded-xl bg-slate-950/80 border border-slate-800 px-3 py-2 text-sm outline-none resize-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-500"
+                  className="mt-3 flex-1 w-full rounded-xl bg-[#050713]/90 border border-[#1E2639] px-3 py-2 text-sm outline-none resize-none focus:border-[#3CF2E5] focus:ring-1 focus:ring-[#3CF2E5]/60 placeholder:text-slate-600 text-slate-100"
                   placeholder={`Lead Name: Claire Meyer
 Email: claire@brightscale.studio
 Source: Referral – Existing Client
@@ -482,7 +625,7 @@ Notes: I run a small web design & no-code studio and we lose a lot of time writi
               </section>
 
               {/* Right: output */}
-              <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-5 flex flex-col shadow-[0_0_0_1px_rgba(15,23,42,0.9)]">
+              <section className="rounded-2xl border border-[#1E2639] bg-[#0B0F19]/90 p-4 md:p-5 flex flex-col shadow-[0_18px_45px_rgba(0,0,0,0.75)] hover:shadow-[0_0_38px_rgba(60,242,229,0.22)] transition-shadow">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-100">
@@ -500,42 +643,54 @@ Notes: I run a small web design & no-code studio and we lose a lot of time writi
 
                 {/* Actions row */}
                 <div className="mt-3 flex items-center justify-between text-[11px]">
-                  <span className="text-emerald-400">{copyMessage}</span>
+                  <span className="text-emerald-400 min-h-[1em]">
+                    {copyMessage}
+                  </span>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleDownload}
                       disabled={!outputText.trim() || isLoading}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-full bg-[#050713]/90 border border-[#1E2639] px-3 py-1.5 text-[11px] text-slate-200 hover:border-[#3CF2E5]/80 hover:text-[#E5FBFF] hover:bg-[#0B0F19] disabled:opacity-40 disabled:hover:border-[#1E2639] transition-all"
                     >
-                      ⬇️ Download .md
+                      <span className="text-xs">⬇️</span>
+                      <span>.md file</span>
                     </button>
 
                     <button
                       onClick={handleCopy}
                       disabled={!outputText.trim() || isLoading}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-full bg-[#050713]/90 border border-[#1E2639] px-3 py-1.5 text-[11px] text-slate-200 hover:border-[#3CF2E5]/80 hover:text-[#E5FBFF] hover:bg-[#0B0F19] disabled:opacity-40 disabled:hover:border-[#1E2639] transition-all"
                     >
-                      ⧉ Copy all
+                      <span className="text-xs">⧉</span>
+                      <span>Copy all</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`px-2 py-1 rounded-lg border transition-colors ${
-                        activeTab === tab.key
-                          ? "bg-cyan-500 text-slate-950 border-cyan-500"
-                          : "border-slate-700 text-slate-300 hover:bg-slate-800"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#050713]/90 border border-[#1E2639] p-1 text-[11px] max-w-full overflow-x-auto">
+                  {tabs.map((tab) => {
+                    const isActive = activeTab === tab.key;
+
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={[
+                          "px-3 py-1.5 rounded-full transition-all whitespace-nowrap flex items-center gap-1",
+                          isActive
+                            ? "bg-gradient-to-r from-[#3CF2E5] via-[#73F4FE] to-[#4BE1FF] text-slate-950 shadow-[0_0_18px_rgba(60,242,229,0.7)]"
+                            : "text-slate-300 hover:text-slate-50 bg-transparent",
+                        ].join(" ")}
+                      >
+                        {tab.key === "all" && (
+                          <span className="text-[10px]">★</span>
+                        )}
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {errorText && (
@@ -544,7 +699,9 @@ Notes: I run a small web design & no-code studio and we lose a lot of time writi
 
                 <div className="mt-3 flex-1 rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3 text-sm text-slate-200 whitespace-pre-wrap overflow-auto max-h-[70vh]">
                   {outputText ? (
-                    activeText
+                    <div className="prose prose-invert max-w-none prose-sm md:prose-base">
+                      <StyledMarkdown>{activeText}</StyledMarkdown>
+                    </div>
                   ) : (
                     <>
                       Waiting for input… Paste a lead on the left and click{" "}
