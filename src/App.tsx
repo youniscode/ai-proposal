@@ -83,10 +83,14 @@ function deriveTitle(lead: string): string {
 }
 
 function makeId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    // @ts-expect-error - randomUUID exists in modern browsers
+  if (
+    typeof crypto !== "undefined" &&
+    "randomUUID" in crypto &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
+
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
