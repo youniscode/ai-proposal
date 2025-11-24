@@ -94,6 +94,7 @@ function makeId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+
 function App() {
   const [leadText, setLeadText] = useState("");
   const [outputText, setOutputText] = useState("");
