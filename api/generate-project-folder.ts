@@ -1,43 +1,7 @@
-// server/index.cjs
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+// api/generate-project-folder.ts
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-// Health check (for browser + Render)
-app.get("/", (req, res) => {
-    res.json({ ok: true, message: "AI Proposal backend root is alive." });
-});
-
-app.get("/health", (req, res) => {
-    res.json({
-        ok: true,
-        envHasKey: Boolean(process.env.OPENAI_API_KEY),
-    });
-});
-
-// Main generation route
-app.post("/api/generate-project-folder", async (req, res) => {
-    const { leadText, model, tone } = req.body || {};
-
-    if (!leadText || !leadText.trim()) {
-        return res.status(400).json({
-            error: "Missing leadText in request body.",
-        });
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-        console.error("OPENAI_API_KEY is missing on the server.");
-        return res.status(500).json({
-            error: "OPENAI_API_KEY is not set on the server.",
-        });
-    }
-
-    const systemPrompt = `
+const systemPrompt = `
 You are JonasCode — Auto-Developer GPT.
 
 You receive raw client lead data and must output a SINGLE, fully structured "Project Folder" document in clean Markdown.
@@ -51,12 +15,6 @@ Your tone:
 - No AI / system / meta talk
 - No explanation of your process
 - No placeholders like {{client}}
-
-If the caller provides a tone preset or model, adapt accordingly:
-- Tone "premium" → premium agency voice
-- Tone "professional" → neutral, business-focused
-- Tone "friendly" → warm and approachable
-- Tone "concise" → shorter, still structured
 
 Your output MUST follow this exact structure and order:
 
@@ -133,18 +91,39 @@ Important:
 - Never invent wild features; stay realistic for a small studio and the budget.
 - Do NOT repeat the UI text like “Once we connect the AI endpoint…”.
 - Output ONLY the finished Project Folder — no extra commentary.
-`.trim();
+`;
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (req.method !== "POST") {
+        res.setHeader("Allow", "POST");
+        return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    const { leadText, model, tone } = (req.body as any) || {};
+
+    if (!leadText || typeof leadText !== "string" || !leadText.trim()) {
+        return res.status(400).json({
+            error: "Missing leadText in request body.",
+        });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({
+            error: "OPENAI_API_KEY is not set on the server.",
+        });
+    }
 
     try {
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
                 model: model || "gpt-4.1-mini",
-                temperature: tone === "concise" ? 0.2 : 0.4,
+                temperature: 0.4,
                 messages: [
                     { role: "system", content: systemPrompt },
                     {
@@ -169,17 +148,11 @@ Important:
         const projectFolder =
             data.choices?.[0]?.message?.content || "No content returned from OpenAI.";
 
-        return res.json({ projectFolder });
+        return res.status(200).json({ projectFolder });
     } catch (err) {
-        console.error("Server error:", err);
+        console.error("Serverless error:", err);
         return res.status(500).json({
             error: "Unexpected server error while generating project folder.",
         });
     }
-});
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-    console.log(`Backend server listening on http://localhost:${PORT}`);
-});
+}

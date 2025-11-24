@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import "./index.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 type SectionKey = "all" | "overview" | "brief" | "proposal" | "miniSpec";
 
@@ -158,7 +158,12 @@ function App() {
       setOutputText("Generating project folder from backend…");
       setActiveHistoryId(null);
 
-      const res = await fetch(`${API_BASE}/api/generate-project-folder`, {
+      const base =
+        API_BASE && API_BASE.trim().length > 0
+          ? API_BASE.replace(/\/$/, "")
+          : "";
+
+      const res = await fetch(`${base}/api/generate-project-folder`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
