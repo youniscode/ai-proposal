@@ -1,5 +1,9 @@
 // api/generate-project-folder.ts
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+// Let TypeScript know `process` exists without needing full Node typings
+declare const process: any;
 
 const systemPrompt = `
 You are JonasCode — Auto-Developer GPT.
@@ -93,13 +97,13 @@ Important:
 - Output ONLY the finished Project Folder — no extra commentary.
 `;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
         return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const { leadText, model, tone } = (req.body as any) || {};
+    const { leadText, model } = (req.body as any) || {};
 
     if (!leadText || typeof leadText !== "string" || !leadText.trim()) {
         return res.status(400).json({
@@ -107,7 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY as string | undefined;
     if (!apiKey) {
         return res.status(500).json({
             error: "OPENAI_API_KEY is not set on the server.",
@@ -146,13 +150,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const projectFolder =
-            data.choices?.[0]?.message?.content || "No content returned from OpenAI.";
+            data.choices?.[0]?.message?.content ||
+            "No content returned from OpenAI.";
 
         return res.status(200).json({ projectFolder });
     } catch (err) {
-        console.error("Serverless error:", err);
+        console.error("Serverless function error:", err);
         return res.status(500).json({
-            error: "Unexpected server error while generating project folder.",
+            error: "Unexpected error while generating project folder.",
         });
     }
 }
