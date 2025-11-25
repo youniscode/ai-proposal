@@ -693,12 +693,12 @@ Notes: I run a small web design & no-code studio and we lose a lot of time writi
                   })}
                 </div>
 
-                {errorText && (
-                  <p className="mt-2 text-xs text-red-400">{errorText}</p>
-                )}
-
                 <div className="mt-3 flex-1 rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-3 text-sm text-slate-200 whitespace-pre-wrap overflow-auto max-h-[70vh]">
-                  {outputText ? (
+                  {errorText ? (
+                    <div className="text-xs text-red-400 bg-red-950/20 border border-red-800/40 rounded-lg px-3 py-2">
+                      {errorText}
+                    </div>
+                  ) : outputText ? (
                     <div className="prose prose-invert max-w-none prose-sm md:prose-base">
                       <StyledMarkdown>{activeText}</StyledMarkdown>
                     </div>
